@@ -21,7 +21,7 @@ dyᵤ = map(xᵤ) do x
   dy_upper(cst, x)
 end
 
-y, dy = dy_upper(cst, 0.3)
+y, dy = fy_upper(cst, 0.3)
 
 plot(xᵤ, yᵤ₉ - yᵤ, label=:error)
 ```
