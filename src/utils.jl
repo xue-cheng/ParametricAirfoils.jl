@@ -36,3 +36,16 @@ function gen_airfoil(a::AbstractAirfoil{T}, np::Int=65; cos_space::Bool = true) 
     end
     return xu,yu,xl,yl
 end
+
+function n_upper(a::AbstractAirfoil{T}, xc::T) where {T}
+    θ = atan(dy_upper(a, xc))
+    return -sin(θ), cos(θ)
+end
+
+function n_lower(a::AbstractAirfoil{T}, xc::T) where {T}
+    θ = atan(dy_lower(a, xc))
+    return sin(θ), -cos(θ)
+end
+
+@inline n_upper(a::AbstractAirfoil{T}, xc::R) where {T, R<:Real} = n_upper(a, convert(T, xc))
+@inline n_lower(a::AbstractAirfoil{T}, xc::R) where {T, R<:Real} = n_lower(a, convert(T, xc))

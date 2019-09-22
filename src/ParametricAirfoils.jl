@@ -26,6 +26,6 @@ include("utils.jl")
 
 export AbstractAirfoil, CST, NACA, @NACA_str
 export x_upper, x_lower, y_upper, y_lower, dy_upper, dy_lower, fy_upper, fy_lower
-export gen_airfoil
+export gen_airfoil, n_upper, n_lower
 
 end # module
