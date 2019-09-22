@@ -18,7 +18,7 @@ function cosspace(start::T, stop::T, np::I) where {T<:AbstractFloat, I<:Integer}
     return p
 end
 
-function gen_airfoil(a::AbstractAirfoil{T}, np::Int=65; cos_space::Bool = true) where {T}
+function gen_airfoil(a::AbstractAirfoil{T}, np::Int=65; cos_space::Bool = true) where {T<:AbstractFloat}
     if cos_space
         xc = cosspace(zero(T), one(T), np)
     else
@@ -37,15 +37,15 @@ function gen_airfoil(a::AbstractAirfoil{T}, np::Int=65; cos_space::Bool = true) 
     return xu,yu,xl,yl
 end
 
-function n_upper(a::AbstractAirfoil{T}, xc::T) where {T}
+function n_upper(a::AbstractAirfoil{T}, xc::T) where {T<:AbstractFloat}
     θ = atan(dy_upper(a, xc))
     return -sin(θ), cos(θ)
 end
 
-function n_lower(a::AbstractAirfoil{T}, xc::T) where {T}
+function n_lower(a::AbstractAirfoil{T}, xc::T) where {T<:AbstractFloat}
     θ = atan(dy_lower(a, xc))
     return sin(θ), -cos(θ)
 end
 
-@inline n_upper(a::AbstractAirfoil{T}, xc::R) where {T, R<:Real} = n_upper(a, convert(T, xc))
-@inline n_lower(a::AbstractAirfoil{T}, xc::R) where {T, R<:Real} = n_lower(a, convert(T, xc))
+@inline n_upper(a::AbstractAirfoil{T}, xc::R) where {T<:AbstractFloat, R<:Real} = n_upper(a, convert(T, xc))
+@inline n_lower(a::AbstractAirfoil{T}, xc::R) where {T<:AbstractFloat, R<:Real} = n_lower(a, convert(T, xc))

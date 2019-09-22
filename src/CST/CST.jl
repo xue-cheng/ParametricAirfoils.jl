@@ -30,7 +30,7 @@ function CST(n::Int,
              xᵤ::AbstractVector{T}, yᵤ::AbstractVector{T},
              xₗ::AbstractVector{T}, yₗ::AbstractVector{T},
              opt::OptimizerFactory; 
-             c1::T=0.5, c2::T=1.0) where {T}
+             c1::T=0.5, c2::T=1.0) where {T<:AbstractFloat}
     if length(xᵤ)!=length(yᵤ)
         throw(ArgumentError("imbalanced upper-surface data: length(xᵤ)!=length(yᵤ)"))
     end
@@ -61,7 +61,7 @@ function CST(n::Int,
     CST{T,n}(A₀, Aᵤ, Aₗ, dz, c1, c2)
 end
 
-function y_upper(cst::CST{T,N}, x::T)::T where{T,N}
+function y_upper(cst::CST{T,N}, x::T)::T where{T<:AbstractFloat,N}
     y = cst.A₀*cst_S(N,0,x)
     for i = 1:N
         y += cst.Aᵤ[i]*cst_S(N,i,x)
@@ -69,7 +69,7 @@ function y_upper(cst::CST{T,N}, x::T)::T where{T,N}
     y*cst_C(cst.C₁, cst.C₂, x) + cst.dz*x
 end
 
-function y_lower(cst::CST{T,N}, x::T)::T where{T,N}
+function y_lower(cst::CST{T,N}, x::T)::T where{T<:AbstractFloat,N}
     y = -cst.A₀*cst_S(N,0,x)
     for i = 1:N
         y += cst.Aₗ[i]*cst_S(N,i,x)
@@ -77,7 +77,7 @@ function y_lower(cst::CST{T,N}, x::T)::T where{T,N}
     y*cst_C(cst.C₁, cst.C₂, x)-cst.dz*x
 end
 
-function dy_upper(cst::CST{T,N}, x::T)::T where{T,N}
+function dy_upper(cst::CST{T,N}, x::T)::T where{T<:AbstractFloat,N}
     dy = cst.A₀*cst_dS(N,0,x)
     y = cst.A₀*cst_S(N,0,x)
     for i = 1:N
@@ -87,7 +87,7 @@ function dy_upper(cst::CST{T,N}, x::T)::T where{T,N}
     y*cst_dC(cst.C₁, cst.C₂, x)+dy*cst_C(cst.C₁, cst.C₂,x)+cst.dz
 end
 
-function dy_lower(cst::CST{T,N}, x::T)::T where{T,N}
+function dy_lower(cst::CST{T,N}, x::T)::T where{T<:AbstractFloat,N}
     dy = -cst.A₀*cst_dS(N,0,x)
     y = -cst.A₀*cst_S(N,0,x)
     for i = 1:N
@@ -98,7 +98,7 @@ function dy_lower(cst::CST{T,N}, x::T)::T where{T,N}
 end
 
 
-function fy_upper(cst::CST{T,N}, x::T)::Tuple{T,T} where{T,N}
+function fy_upper(cst::CST{T,N}, x::T)::Tuple{T,T} where{T<:AbstractFloat,N}
     dy = cst.A₀*cst_dS(N,0,x)
     y = cst.A₀*cst_S(N,0,x)
     for i = 1:N
@@ -110,7 +110,7 @@ function fy_upper(cst::CST{T,N}, x::T)::Tuple{T,T} where{T,N}
     y*C+cst.dz*x, y*dC+dy*C+cst.dz
 end
 
-function fy_lower(cst::CST{T,N}, x::T)::Tuple{T,T} where{T,N}
+function fy_lower(cst::CST{T,N}, x::T)::Tuple{T,T} where{T<:AbstractFloat,N}
     dy = -cst.A₀*cst_dS(N,0,x)
     y = -cst.A₀*cst_S(N,0,x)
     for i = 1:N
