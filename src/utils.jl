@@ -37,15 +37,38 @@ function gen_airfoil(a::AbstractAirfoil{T}, np::Int=65; cos_space::Bool = true) 
     return xu,yu,xl,yl
 end
 
-function n_upper(a::AbstractAirfoil{T}, xc::T) where {T<:AbstractFloat}
+function n_upper(a::AbstractAirfoil{T}, xc::T)::Tuple{T,T} where {T<:AbstractFloat}
     θ = atan(dy_upper(a, xc))
     return -sin(θ), cos(θ)
 end
 
-function n_lower(a::AbstractAirfoil{T}, xc::T) where {T<:AbstractFloat}
+function n_lower(a::AbstractAirfoil{T}, xc::T)::Tuple{T,T} where {T<:AbstractFloat}
     θ = atan(dy_lower(a, xc))
     return sin(θ), -cos(θ)
 end
 
 @inline n_upper(a::AbstractAirfoil{T}, xc::R) where {T<:AbstractFloat, R<:Real} = n_upper(a, convert(T, xc))
 @inline n_lower(a::AbstractAirfoil{T}, xc::R) where {T<:AbstractFloat, R<:Real} = n_lower(a, convert(T, xc))
+
+function t_upper(a::AbstractAirfoil{T}, xc::T)::Tuple{T,T} where {T<:AbstractFloat}
+    dy = dy_upper(a,xc)
+    if isinf(dy)
+        return zero(T), sign(dy)
+    else
+        n = sqrt(dy^2+oneunit(T))
+        return 1/n, dy/n
+    end
+end
+
+function t_lower(a::AbstractAirfoil{T}, xc::T)::Tuple{T,T} where {T<:AbstractFloat}
+    dy = dy_lower(a,xc)
+    if isinf(dy)
+        return zero(T), sign(dy)
+    else
+        n = sqrt(dy^2+oneunit(T))
+        return 1/n, dy/n
+    end
+end
+
+@inline t_upper(a::AbstractAirfoil{T}, xc::R) where {T<:AbstractFloat, R<:Real} = t_upper(a, convert(T, xc))
+@inline t_lower(a::AbstractAirfoil{T}, xc::R) where {T<:AbstractFloat, R<:Real} = t_lower(a, convert(T, xc))
