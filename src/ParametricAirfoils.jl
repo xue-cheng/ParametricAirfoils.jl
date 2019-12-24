@@ -20,6 +20,7 @@ x_upper(::AbstractAirfoil{T}, xc::T) where {T<:AbstractFloat} = xc
 @inline fy_lower(a::AbstractAirfoil{T}, xc::R) where {T<:AbstractFloat, R<:Real} = fy_lower(a, convert(T,xc))
 @inline fy_upper(a::AbstractAirfoil{T}, xc::R) where {T<:AbstractFloat, R<:Real} = fy_upper(a, convert(T,xc))
 
+
 include("CST/CST.jl")
 include("NACA/NACA.jl")
 include("utils.jl")

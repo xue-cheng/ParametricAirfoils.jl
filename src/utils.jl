@@ -72,3 +72,28 @@ end
 
 @inline t_upper(a::AbstractAirfoil{T}, xc::R) where {T<:AbstractFloat, R<:Real} = t_upper(a, convert(T, xc))
 @inline t_lower(a::AbstractAirfoil{T}, xc::R) where {T<:AbstractFloat, R<:Real} = t_lower(a, convert(T, xc))
+
+
+for fname in [:x_lower, :x_upper, :y_upper, :y_lower, :dy_upper, :dy_lower]
+    @eval begin
+        @inline function ($fname)(af::AbstractAirfoil, xc::AbstractVector)
+            y = similar(xc)
+            @inbounds for i in eachindex(xc)
+                y[i] = ($fname)(af, xc[i])
+            end
+            y
+        end
+    end
+end
+
+for fname in [:fy_upper, :fy_lower, :n_upper, :n_lower, :t_upper, :t_lower]
+    @eval begin
+        @inline function ($fname)(af::AbstractAirfoil, xc::AbstractVector)
+            y = similar(xc, 2, length(xc))
+            @inbounds for i in eachindex(xc)
+                y[:,i] .= ($fname)(af, xc[i])
+            end
+            y
+        end
+    end
+end
