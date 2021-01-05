@@ -29,8 +29,9 @@ end
 function CST(n::Int,
              xᵤ::AbstractVector{T}, yᵤ::AbstractVector{T},
              xₗ::AbstractVector{T}, yₗ::AbstractVector{T},
-             opt::OptimizerFactory; 
+             opt; 
              c1::T=0.5, c2::T=1.0) where {T<:AbstractFloat}
+             with_optimizer
     if length(xᵤ)!=length(yᵤ)
         throw(ArgumentError("imbalanced upper-surface data: length(xᵤ)!=length(yᵤ)"))
     end

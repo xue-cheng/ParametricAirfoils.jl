@@ -16,7 +16,7 @@ end
 function fit_cst(n::Int, dz::T,
     xu::AbstractVector{T},yu::AbstractVector{T},
     xl::AbstractVector{T},yl::AbstractVector{T}, 
-    opt::OptimizerFactory; 
+    opt; 
     c1::T = 0.5,
     c2::T = 1.0 ) where {T}
     m = Model(opt)

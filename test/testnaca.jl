@@ -29,7 +29,7 @@
         naca0015 = NACA"0015"
         yuaf = y_upper(naca0015, xu)
         @test all(isapprox.(yu, yuaf, atol=0.001))
-        cst0015 = CST(9,xu,yu,xl,yl, with_optimizer(Ipopt.Optimizer))
+        cst0015 = CST(9,xu,yu,xl,yl, Ipopt.Optimizer)
         yuaf = y_upper(cst0015, xu)
         @test all(isapprox.(yu, yuaf, atol=0.001))
     end
