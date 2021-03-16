@@ -1,43 +1,47 @@
-using NLopt
-@inline cst_S(n, i, x) = binomial(n, i) * x^i * (1 - x)^(n - i)
-@inline cst_C(n1, n2, x) = x^n1 * (1 - x)^n2
-@inline function cst_dS(n, i, x)
+cstShapeF(n, i, x) = binomial(n, i) * x^i * (1 - x)^(n - i)
+
+cstClassF(N1, N2, x) = x^N1 * (1 - x)^N2
+
+function cstShapeD(n, i, x)
     if i == 0 # (1-x)^n
         -n * (1 - x)^(n - 1)
     elseif i == n # x^n
         n * x^(n - 1)
     else
-        binomial(n, i) * (i * x^(i - 1) * (1 - x)^(n - i) - (n - i) * x^i * (1 - x)^(n - i - 1))
+        binomial(n, i) * (
+            i * x^(i - 1) * (1 - x)^(n - i) - 
+            (n - i) * x^i * (1 - x)^(n - i - 1)
+        )
     end
 end
 
-@inline function cst_dC(n1, n2, x) 
-    n1 * x^(n1 - 1) * (1 - x)^n2 - n2 * x^n1 * (1 - x)^(n2 - 1)
+function cstClassD(N1, N2, x) 
+    N1 * x^(N1 - 1) * (1 - x)^N2 - N2 * x^N1 * (1 - x)^(N2 - 1)
 end
 
-function fit_cst(n::Int, dz::T,
-    xu::AbstractVector{T},yu::AbstractVector{T},
-    xl::AbstractVector{T},yl::AbstractVector{T},
-    algorithm::Symbol; 
-    c1::T=0.5,
-    c2::T=1.0 ) where {T}
-    m = Model(NLopt.Optimizer)
-    set_optimizer_attribute(m, "algorithm", algorithm)
-    lb = oneunit(T) * -2
-    up = oneunit(T) * 2
-    n_up = length(xu)
-    n_lo = length(xl)
-    @variable(m, lb <= A₀ <= up, start = 1.0)
-    @variable(m, lb <= Aᵤ[1:n] <= up, start = 1.0)
-    @variable(m, lb <= Aₗ[1:n] <= up, start = -1.0)
-    @expression(m, yuc[j=1:n_up], cst_C(c1, c2, xu[j]) * ( A₀ * cst_S(n, 0, xu[j]) + sum(Aᵤ[i] * cst_S(n, i, xu[j]) for i = 1:n)) + xu[j] * dz)
-    @expression(m, ylc[j=1:n_lo], cst_C(c1, c2, xl[j]) * (-A₀ * cst_S(n, 0, xl[j]) + sum(Aₗ[i] * cst_S(n, i, xl[j]) for i = 1:n)) - xl[j] * dz)
-    @expression(m, fup, sum((yuc[j] - yu[j])^2 for j = 1:n_up))
-    @expression(m, flo, sum((ylc[j] - yl[j])^2 for j = 1:n_lo))
-    @objective(m, Min, fup + flo)
-    JuMP.optimize!(m)
-    status = termination_status(m)
-    value(A₀), value.(Aᵤ), value.(Aₗ), status
+function cstMatrix(xu::V, yu::V, xl::V, yl::V, N, N1, N2)　where {T,V <: AbstractVector{T}}
+    NP = length(xu) + length(xl) - 2
+    A = zeros(T, NP, 2N + 3)
+    b = vcat(yu[2:end], yl[2:end])
+    ip = 1
+    
+    @inbounds for x in @view xu[2:end]
+        c = cstClassF(N1, N2, x)
+        for i in 1:N
+            A[ip, i] = c * cstShapeF(N, i, x)
+        end
+        A[ip, 2N + 1] = c * cstShapeF(N, 0, x) # a_le
+        A[ip, 2N + 2] = x # y_tu
+        ip += 1
+    end
+    @inbounds for x in @view xl[2:end]
+        c = cstClassF(N1, N2, x)
+        for i in 1:N
+            A[ip, i + N] = c * cstShapeF(N, i, x)
+        end
+        A[ip, 2N + 1] = -c * cstShapeF(N, 0, x) # -a_le
+        A[ip, 2N + 3] = x # y_tl
+        ip += 1
+    end
+    return A, b
 end
-
-

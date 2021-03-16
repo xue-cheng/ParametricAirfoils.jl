@@ -97,3 +97,39 @@ for fname in [:fy_upper, :fy_lower, :n_upper, :n_lower, :t_upper, :t_lower]
         end
     end
 end
+
+function normalize_airfoil_data(xu, yu, xl, yl)
+    iu = argmin(xu)
+    il = argmin(xl)
+    @assert xu[1] == xl[1]
+    @assert yu[1] == yl[1]
+    @assert iu == 1 || il == 1
+    if iu > 1
+        xl1 = vcat(xu[iu:-1:2], xl)
+        yl1 = vcat(yu[iu:-1:2], yl)
+        xu1 = xu[iu:end]
+        yu1 = yu[iu:end]
+    elseif il > 1
+        xu1 = vcat(xl[il:-1:2], xu)
+        yu1 = vcat(yl[il:-1:2], yu)
+        xl1 = xl[il:end]
+        yl1 = yl[il:end]
+    else
+        xu1 = copy(xu)
+        yu1 = copy(yu)
+        xl1 = copy(xl)
+        yl1 = copy(yl)
+    end
+    x0 = xl1[1]
+    y0 = yl1[1]
+    @. xu1 -= x0
+    @. yu1 -= y0
+    @. xl1 -= x0
+    @. yl1 -= y0
+    x1 = (xl1[end] + xu1[end]) / 2
+    @. xu1 /= x1
+    @. yu1 /= x1
+    @. xl1 /= x1
+    @. yl1 /= x1
+    xu1, yu1, xl1, yl1
+end

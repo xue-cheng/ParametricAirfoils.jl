@@ -1,6 +1,6 @@
 module ParametricAirfoils
 
-using JuMP
+using LinearAlgebra
 using Printf
 
 abstract type AbstractAirfoil{T <: AbstractFloat} end
@@ -21,6 +21,8 @@ x_upper(::AbstractAirfoil{T}, xc::T) where {T <: AbstractFloat} = xc
 @inline fy_upper(a::AbstractAirfoil{T}, xc::R) where {T <: AbstractFloat,R <: Real} = fy_upper(a, convert(T, xc))
 
 
+fit(method::Symbol, args...; kwargs...) = fit(Val(method), args...; kwargs...)
+
 include("CST/CST.jl")
 include("NACA/NACA.jl")
 include("utils.jl")
@@ -29,5 +31,6 @@ include("segment.jl")
 export AbstractAirfoil, CST, NACA, @NACA_str
 export x_upper, x_lower, y_upper, y_lower, dy_upper, dy_lower, fy_upper, fy_lower
 export gen_airfoil, n_upper, n_lower, t_lower, t_upper, gen_segment
+export fit
 
 end # module
