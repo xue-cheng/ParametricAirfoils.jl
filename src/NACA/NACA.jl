@@ -1,8 +1,8 @@
-abstract type NACABase{T<:AbstractFloat} <: AbstractAirfoil{T} end
+abstract type NACABase{T <: AbstractFloat} <: AbstractAirfoil{T} end
 
 include("NACA4.jl")
 
-function NACA(::Type{T}, num::AbstractString, sharp_TE::Bool=false) where {T<:AbstractFloat}
+function NACA(::Type{T}, num::AbstractString, sharp_TE::Bool=false) where {T <: AbstractFloat}
     if length(num) == 4
         NACA4(T, num, sharp_TE)
     else

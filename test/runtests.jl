@@ -1,2 +1,2 @@
-using Test, ParametricAirfoils, Ipopt, JuMP
+using Test, ParametricAirfoils
 include("testnaca.jl")

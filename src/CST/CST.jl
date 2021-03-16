@@ -26,11 +26,23 @@ function CST(A₀::T, Aᵤ::AbstractVector{T}, Aₗ::AbstractVector{T};
     CST{T,n}(A₀, copy(Aᵤ), copy(Aₗ), dz, c1, c2)
 end
 
+"""
+    cst = CST(n, xᵤ, yᵤ, xₗ, yₗ[; kwargs...])
+Fit CST parameters with airfoil data.
+# Arguments
+- `n` order of the CST model
+- `xᵤ` and `yᵤ`: Coordinates of the upper surface
+- `xₗ` and `yₗ`: Coordinates of the lower surface
+# Optional keyword arguments
+- `algorithm::Symbol`: the optimize algorithm, please refer to the NLopt documentation.
+- `c1::Real` and `c2::Real`: Indices of the class function.
+"""
 function CST(n::Int,
              xᵤ::AbstractVector{T}, yᵤ::AbstractVector{T},
-             xₗ::AbstractVector{T}, yₗ::AbstractVector{T},
-             opt; 
-             c1::T=0.5, c2::T=1.0) where {T<:AbstractFloat}
+             xₗ::AbstractVector{T}, yₗ::AbstractVector{T};
+             algorithm=:LD_MMA,
+             c1::T=0.5,
+             c2::T=1.0) where {T<:AbstractFloat}
              with_optimizer
     if length(xᵤ)!=length(yᵤ)
         throw(ArgumentError("imbalanced upper-surface data: length(xᵤ)!=length(yᵤ)"))
@@ -58,7 +70,7 @@ function CST(n::Int,
     elseif dz < eps(T)
         dz = zero(T) # set to zero
     end
-    A₀, Aᵤ, Aₗ, status = fit_cst(n, dz, xᵤ, yᵤ, xₗ, yₗ, opt; c1=c1, c2=c2)
+    A₀, Aᵤ, Aₗ, status = fit_cst(n, dz, xᵤ, yᵤ, xₗ, yₗ, algorithm; c1=c1, c2=c2)
     CST{T,n}(A₀, Aᵤ, Aₗ, dz, c1, c2)
 end
 

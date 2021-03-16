@@ -5,13 +5,13 @@ A Parametric Airfoils package for julia.
 ## Examples ##
 
 ```julia
-using ParametricAirfoils, JuMP, Ipopt, Plots
+using ParametricAirfoils, JuMP, Plots
 
 naca0012 = NACA"0012"s # `s` for sharp trailing edge
 
 xᵤ, yᵤ, xₗ, yₗ = gen_airfoil(naca0012, 129)
 
-cst = CST(9, xᵤ, yᵤ, xₗ, yₗ, with_optimizer(Ipopt.Optimizer))
+cst = CST(9, xᵤ, yᵤ, xₗ, yₗ)
 
 yᵤ₉ = map(xᵤ) do x
   y_upper(cst, x)
