@@ -40,26 +40,26 @@ xu, yu, xl, yl = gen_airfoil(naca)
 dyu = dy_upper(naca, xu)
 dyl = dy_lower(naca, xl)
 # original airfoil
-cst = fit(:CST, xu, yu, xl, yl; N=9)
+cst = fit(:CST, xu, yu, xl, yl; N=12, N2=1)
 yuaf = y_upper(cst, xu)
 ylaf = y_lower(cst, xl)
 @test all(isapprox.(yu, yuaf, atol=1e-4))
 @test all(isapprox.(yl, ylaf, atol=1e-4))
 dyuaf = dy_upper(cst, xu)
 dylaf = dy_lower(cst, xl)
-@test all(isapprox.(dyu, dyuaf, rtol=1e-2, atol=1e-2))
-@test all(isapprox.(dyl, dylaf, rtol=1e-2, atol=1e-2))
+@test all(isapprox.(dyu, dyuaf, rtol=5e-3, atol=5e-3))
+@test all(isapprox.(dyl, dylaf, rtol=5e-3, atol=5e-3))
 
 # modify airfoil
 @. yu += xu * 0.001
 @. yl -= xl * 0.0015
-cst = fit(:CST, xu, yu, xl, yl; N=9)
+cst = fit(:CST, xu, yu, xl, yl; N=9, N2=1)
 yuaf = y_upper(cst, xu)
 ylaf = y_lower(cst, xu)
 @test all(isapprox.(yu, yuaf, atol=1e-4))
 @test all(isapprox.(yl, ylaf, atol=1e-4))
 
-# shart TE
+# sharp TE
 naca = NACA"0015"s
 xu, yu, xl, yl = gen_airfoil(naca)
 # original airfoil

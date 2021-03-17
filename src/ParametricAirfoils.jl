@@ -2,6 +2,7 @@ module ParametricAirfoils
 
 using LinearAlgebra
 using Printf
+using NLopt
 
 abstract type AbstractAirfoil{T <: AbstractFloat} end
 
