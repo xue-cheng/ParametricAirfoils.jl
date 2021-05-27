@@ -17,7 +17,7 @@ cst = fit(:CST, xᵤ, yᵤ, xₗ, yₗ; N=9)
 
 yᵤ₉ = map(xᵤ) do x
   y_upper(cst, x)
-end # equal to y_upper(cst(xᵤ))
+end # equal to y_upper(cst, xᵤ)
 
 dyᵤ = map(xᵤ) do x
   dy_upper(cst, x)
