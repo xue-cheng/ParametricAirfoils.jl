@@ -34,7 +34,7 @@ function gen_airfoil(a::AbstractAirfoil{T}, np::Int=65; cos_space::Bool=true) wh
         xl[i] = x_lower(a, xc[i])
         yl[i] = y_lower(a, xc[i])
     end
-    return xu, yu, xl, yl
+    return vcat(xu[end:-1:2],xl), vcat(yu[end:-1:2],yl)
 end
 
 function n_upper(a::AbstractAirfoil{T}, xc::T)::Tuple{T,T} where {T <: AbstractFloat}

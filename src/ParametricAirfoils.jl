@@ -2,7 +2,6 @@ module ParametricAirfoils
 
 using LinearAlgebra
 using Printf
-using NLopt
 
 abstract type AbstractAirfoil{T <: AbstractFloat} end
 
@@ -27,11 +26,9 @@ fit(method::Symbol, args...; kwargs...) = fit(Val(method), args...; kwargs...)
 include("CST/CST.jl")
 include("NACA/NACA.jl")
 include("utils.jl")
-include("segment.jl")
 
 export AbstractAirfoil, CST, NACA, @NACA_str
 export x_upper, x_lower, y_upper, y_lower, dy_upper, dy_lower, fy_upper, fy_lower
-export gen_airfoil, n_upper, n_lower, t_lower, t_upper, gen_segment
-export fit
-
+export gen_airfoil, n_upper, n_lower, t_lower, t_upper
+export fit, fit!, set_param!, get_param, modify_te!
 end # module

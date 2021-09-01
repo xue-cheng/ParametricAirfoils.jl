@@ -32,41 +32,22 @@ ylaf = y_lower(naca0015, xl)
 @test all(isapprox.(yl, ylaf, atol=1e-4))
 end
 
-using Printf
-
 @testset "CST" begin
 naca = NACA"0015"
-xu, yu, xl, yl = gen_airfoil(naca)
-dyu = dy_upper(naca, xu)
-dyl = dy_lower(naca, xl)
+NP = 65
+x0, y0 = gen_airfoil(naca, NP)
 # original airfoil
-cst = fit(:CST, xu, yu, xl, yl; N=12, N2=1)
-yuaf = y_upper(cst, xu)
-ylaf = y_lower(cst, xl)
-@test all(isapprox.(yu, yuaf, atol=1e-4))
-@test all(isapprox.(yl, ylaf, atol=1e-4))
-dyuaf = dy_upper(cst, xu)
-dylaf = dy_lower(cst, xl)
-@test all(isapprox.(dyu, dyuaf, rtol=5e-3, atol=5e-3))
-@test all(isapprox.(dyl, dylaf, rtol=5e-3, atol=5e-3))
-
-# modify airfoil
-@. yu += xu * 0.001
-@. yl -= xl * 0.0015
-cst = fit(:CST, xu, yu, xl, yl; N=9, N2=1)
-yuaf = y_upper(cst, xu)
-ylaf = y_lower(cst, xu)
-@test all(isapprox.(yu, yuaf, atol=1e-4))
-@test all(isapprox.(yl, ylaf, atol=1e-4))
-
-# sharp TE
-naca = NACA"0015"s
-xu, yu, xl, yl = gen_airfoil(naca)
-# original airfoil
-cst = fit(:CST, xu, yu, xl, yl; N=9)
-yuaf = y_upper(cst, xu)
-ylaf = y_lower(cst, xl)
-@test all(isapprox.(yu, yuaf, atol=1e-4))
-@test all(isapprox.(yl, ylaf, atol=1e-4))
-
+cst = fit(:CST, x0, y0, N=6)
+xtest = x0[NP:end]
+yuaf = y_upper(cst, xtest)
+ylaf = y_lower(cst, xtest)
+@test all(isapprox.(y0[NP:-1:1], yuaf, atol=2e-4))
+@test all(isapprox.(y0[NP:end], ylaf, atol=2e-4))
+# fit cambered airfoil
+naca = NACA"4412"s
+x0, y0 = gen_airfoil(naca, NP)
+fit!(cst, x0, y0)
+xx, yy = gen_airfoil(cst, NP)
+@test xx[end] == xx[1] == 1
+@test issorted(xx[NP:-1:1]) && issorted(xx[NP:end])
 end

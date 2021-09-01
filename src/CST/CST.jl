@@ -1,6 +1,8 @@
 include("utils.jl")
 
-struct CST{T <: AbstractFloat,N,N1,N2} <: AbstractAirfoil{T}
+mutable struct CST{T,N,N1,N2} <: AbstractAirfoil{T}
+    class::CSTClassFunction{N1,N2}
+    shape::CSTShapeFunction{N,T}
     au::Vector{T} 
     al::Vector{T}
     a0::T
@@ -8,181 +10,151 @@ struct CST{T <: AbstractFloat,N,N1,N2} <: AbstractAirfoil{T}
     yl::T
 end
 
-function CST(params::AbstractArray{T}; N::Int, N1::T=0.5, N2::T=1) where T
-    @assert length(params) == 2N + 3
-    au = params[1:N]
-    al = params[N + 1:2N]
-    a0 = params[2N + 1]
-    yu = params[2N + 2]
-    yl = params[2N + 3]
-    CST{T,N,N1,N2}(au, al, a0, yu, yl)
+function CST(::UndefInitializer, ::Type{T}, N::Int, N1=0.5, N2=1) where {T <: AbstractFloat}
+    N1_ = convert(T, N1)
+    N2_ = convert(T, N2)
+    class = CSTClassFunction(N1_, N2_)
+    shape = CSTShapeFunction(N, T)
+    CST{T,N,N1_,N2_}(class, shape, Vector{T}(undef, N), Vector{T}(undef, N), 0, 0, 0)
+end
+
+function CST(a::AbstractVector{T}, N1=0.5, N2=1, T_TE=0, Y_TE=0) where {T <: AbstractFloat}
+    N::Int, rem = divrem(length(a), 2)
+    rem == 1 || error("CST params must be of length 2*N+1")
+    N1_ = convert(T, N1)
+    N2_ = convert(T, N2)
+    class = CSTClassFunction(N1_, N2_)
+    shape = CSTShapeFunction(N, T)
+    yu = convert(T, Y_TE + T_TE / 2)
+    yl = convert(T, Y_TE - T_TE / 2)
+    a0 = a[1]
+    au = a[2:N + 1]
+    al = a[N + 2:2N + 1]
+    CST{T,N,N1_,N2_}(class, shape, au, al, a0, yu, yl)
+end
+
+function set_param!(cst::CST{T,N,N1,N2}, a::AbstractVector{T}) where {T,N,N1,N2}
+    length(a) == 2N + 1 || error("CST params must be of length 2*N+1")
+    cst.a0 = a[1]
+    cst.au = a[2:N + 1]
+    cst.al = a[N + 2:2N + 1]
+end
+
+get_param(cst::CST{T}) where {T} = vcat(cst.a0, cst.au, cst.al)
+
+function modify_te!(cst::CST{T}; T_TE=nothing, Y_TE=nothing) where T
+    if T_TE === nothing
+        T_TE = cst.yu - cst.yl
+    end
+    if Y_TE === nothing
+        Y_TE = (cst.yu + cst.yl) / 2
+    end
+    cst.yu = convert(T, Y_TE + T_TE / 2)
+    cst.yl = convert(T, Y_TE - T_TE / 2)
+end
+
+
+@inline shape_f(cst::CST, i, x) = shape_f(cst.shape, i, x)
+@inline shape_d(cst::CST, i, x) = shape_f(cst.shape, i, x)
+@inline class_f(cst::CST, x) = class_f(cst.class, x)
+@inline class_d(cst::CST, x) = class_d(cst.class, x)
+
+function Base.show(io::IO, cst::CST{T,N,N1,N2}) where {T,N,N1,N2}
+    println(io, "CST{$T,$N,$N1,$N2}")
+    println(io, "  Upper surface:", vcat(cst.a0, cst.au))
+    println(io, "  Lower surface:", vcat(-cst.a0, cst.al))
+    println(io, "  Trailing edge: yu=", cst.yu, " yl=", cst.yl)
 end
 
 """
-    fit(:CST, xu, yu, xl, yl; N=N, N1=N1, N2=N2)
-fit CST model with order `N` and class function indices `N1` and `N2`. 
-An optimizer is utilized to determin `N1` and `N2` if any of them is `:OPT`.
+    fit(:CST, xu, yu, xl, yl; type=Float64, N=9, N1=0.5, N2=1.0)
 """
-function fit(v::Val{:CST}, xu, yu, xl, yl; N=5, N1=:OPT, N2=:OPT, kw...)
-    @assert issorted(xu)
-    @assert issorted(xl)
-    @assert xu[1] == xl[1] == 0
-    @assert yu[1] == yl[1] == 0
-    xu1, yu1, xl1, yl1 = promote(xu, yu, xl, yl)
-    T = eltype(xu1)
-    if isa(N1, Number) && isa(N2, Number)
-        cst_fit(N, convert(T, N1), convert(T, N2), xu1, yu1, xl1, yl1)
-    else
-        N1_ = isa(N1, Symbol) ? N1 : convert(T, N1)
-        N2_ = isa(N2, Symbol) ? N2 : convert(T, N2)
-        cst_fit_opt(N, N1_, N2_, xu1, yu1, xl1, yl1)
+function fit(::Val{:CST}, xx, yy; T=Float64, N=9, N1=0.5, N2=1.0, kw...)
+    if (!isempty(kw))
+        @warn "Unused keyword arguments:" kw...
     end
+    N1_ = convert(T, N1)
+    N2_ = convert(T, N2)
+    xu, yu, xl, yl = cst_preprocess(convert.(T, xx), convert.(T, yy))
+    @assert issorted(xu) && issorted(xl)
+    @assert xu[1] == xl[1] == yu[1] == yl[1] == 0
+    @assert (xu[end] + xl[end])/2 ≈ 1
+    class = CSTClassFunction(N1_, N2_)
+    shape = CSTShapeFunction(N, T)
+    au, al, a0, yu1, yl1 = cst_fit(class, shape, xu, yu, xl, yl)
+    CST{T,N,N1,N2}(class, shape, au, al, a0, yu1, yl1)
 end
 
-    function lsfit(A, b)
-    U, S, V = svd(A)
-    V * ((transpose(U) * b) ./ S)
+"""
+    fit!(cst, xu, yu, xl, yl)
+    
+"""
+function fit!(cst::CST{T,N,N1,N2}, xx, yy) where {T,N,N1,N2}
+    xu, yu, xl, yl = cst_preprocess(convert.(T, xx), convert.(T, yy))
+    @assert issorted(xu) && issorted(xl)
+    @assert xu[1] == xl[1] == yu[1] == yl[1] == 0
+    @assert (xu[end] + xl[end])/2 ≈ 1
+    cst.au, cst.al, cst.a0, cst.yu, cst.yl = cst_fit(cst.class, cst.shape, xu, yu, xl, yl)
+    cst
 end
 
-function cst_fit(N::Int, N1::T, N2::T,
-    xu::AbstractVector{T}, yu::AbstractVector{T},
-    xl::AbstractVector{T}, yl::AbstractVector{T} ) where {T}
-    A, b = cstMatrix(xu, yu, xl, yl, N, N1, N2)
-    params = lsfit(A, b)
-    CST(params; N=N, N1=N1, N2=N2)
-end
-
-function cst_fit_opt(N::Int, N1::Symbol, N2::Symbol,
-    xu::AbstractVector{T}, yu::AbstractVector{T},
-    xl::AbstractVector{T}, yl::AbstractVector{T}
-    ) where {T}
-    function objective(x::Vector, ::Vector)
-        N1_ = convert(T, x[1])
-        N2_ = convert(T, x[2])
-        A, b = cstMatrix(xu, yu, xl, yl, N, N1_, N2_)
-        cst = CST(lsfit(A, b); N=N, N1=N1_, N2=N2_)
-        yu1 = y_upper(cst, xu)
-        yl1 = y_lower(cst, xl)
-        @. yu1 = abs(yu1 - yu)
-        @. yl1 = abs(yl1 - yl)
-        convert(eltype(x), max(maximum(yu1), maximum(yl1)))
-    end
-    opt = Opt(:LN_COBYLA, 2)
-    opt.lower_bounds = [0.1, 0.1]
-    opt.upper_bounds = [1.0, 1.0]
-    opt.xtol_rel = 1e-4
-    opt.min_objective = objective
-    (minf, minx, ret) = optimize(opt, [0.5, 1.0])
-    numevals = opt.numevals # the number of function evaluations
-    @info "CSTOPT: got [N1,N2]=$minx after $numevals iters"
-    cst_fit(N, convert(T, minx[1]), convert(T, minx[2]), xu, yu, xl, yl)
-end
-
-function cst_fit_opt(N::Int, N1::Symbol, N2::T,
-    xu::AbstractVector{T}, yu::AbstractVector{T},
-    xl::AbstractVector{T}, yl::AbstractVector{T}) where {T}
-    function objective(x::Vector, ::Vector)
-        N1_ = convert(T, x[1])
-        A, b = cstMatrix(xu, yu, xl, yl, N, N1_, N2)
-        cst = CST(lsfit(A, b); N=N, N1=N1_, N2=N2)
-        yu1 = y_upper(cst, xu)
-        yl1 = y_lower(cst, xl)
-        @. yu1 = abs(yu1 - yu)
-        @. yl1 = abs(yl1 - yl)
-        convert(eltype(x), max(maximum(yu1), maximum(yl1)))
-    end
-    opt = Opt(:LN_COBYLA, 1)
-    opt.lower_bounds = [0.1]
-    opt.upper_bounds = [1.0]
-    opt.xtol_rel = 1e-4
-    opt.min_objective = objective
-    (minf, minx, ret) = optimize(opt, [0.5])
-    numevals = opt.numevals # the number of function evaluations
-    @info "CSTOPT: got N1=$(minx[1]) after $numevals iters"
-    cst_fit(N, convert(T, minx[1]), N2, xu, yu, xl, yl)
-end
-
-function cst_fit_opt(N::Int, N1::T, N2::Symbol,
-    xu::AbstractVector{T}, yu::AbstractVector{T},
-    xl::AbstractVector{T}, yl::AbstractVector{T}) where {T}
-    function objective(x::Vector, ::Vector)
-        N2_ = convert(T, x[1])
-        A, b = cstMatrix(xu, yu, xl, yl, N, N1, N2_)
-        cst = CST(lsfit(A, b); N=N, N1=N1, N2=N2_)
-        yu1 = y_upper(cst, xu)
-        yl1 = y_lower(cst, xl)
-        @. yu1 = abs(yu1 - yu)
-        @. yl1 = abs(yl1 - yl)
-        convert(eltype(x), max(maximum(yu1), maximum(yl1)))
-    end
-    opt = Opt(:LN_COBYLA, 1)
-    opt.lower_bounds = [0.1]
-    opt.upper_bounds = [1.0]
-    opt.xtol_rel = 1e-4
-    opt.min_objective = objective
-    (minf, minx, ret) = optimize(opt, [1.0])
-    numevals = opt.numevals # the number of function evaluations
-    @info "CSTOPT: got N2=$(minx[1]) after $numevals iters"
-    cst_fit(N, N1, convert(T, minx[1]), xu, yu, xl, yl)
-end
-
-function y_upper(cst::CST{T,N,N1,N2}, x::T)::T where {T <: AbstractFloat,N,N1,N2}
-    y = cst.a0 * cstShapeF(N, 0, x)
+function y_upper(cst::CST{T,N}, x::T)::T where {T <: AbstractFloat,N}
+    y = cst.a0 * shape_f(cst, 0, x) 
     for i = 1:N
-        y += cst.au[i] * cstShapeF(N, i, x)
+        y += cst.au[i] * shape_f(cst, i, x)
     end
-    y * cstClassF(N1, N2, x) + cst.yu * x
+    y * class_f(cst, x) + cst.yu * x
 end
 
-function y_lower(cst::CST{T,N,N1,N2}, x::T)::T where {T <: AbstractFloat,N,N1,N2}
-    y = -cst.a0 * cstShapeF(N, 0, x)
+function y_lower(cst::CST{T,N}, x::T)::T where {T <: AbstractFloat,N}
+    y = -cst.a0 * shape_f(cst, 0, x) 
     for i = 1:N
-        y += cst.al[i] * cstShapeF(N, i, x)
+        y += cst.al[i] * shape_f(cst, i, x)
     end
-    y * cstClassF(N1, N2, x) + cst.yl * x
+    y * class_f(cst, x) + cst.yl * x
 end
 
-function dy_upper(cst::CST{T,N,N1,N2}, x::T)::T where {T <: AbstractFloat,N,N1,N2}
-    dy = cst.a0 * cstShapeD(N, 0, x)
-    y = cst.a0 * cstShapeF(N, 0, x)
+function dy_upper(cst::CST{T,N}, x::T)::T where {T <: AbstractFloat,N}
+    dy = cst.a0 * shape_d(cst, 0, x)
+    y = cst.a0 * shape_f(cst, 0, x)
     for i = 1:N
-        dy += cst.au[i] * cstShapeD(N, i, x)
-        y += cst.au[i] * cstShapeF(N, i, x)
+        dy += cst.au[i] * shape_d(cst, i, x)
+        y += cst.au[i] * shape_f(cst, i, x)
     end
-    y * cstClassD(N1, N2, x) + dy * cstClassF(N1, N2, x) + cst.yu
+    y * class_d(cst, x) + dy * class_f(cst, x) + cst.yu
 end
 
-function dy_lower(cst::CST{T,N,N1,N2}, x::T)::T where {T <: AbstractFloat,N,N1,N2}
-    dy = -cst.a0 * cstShapeD(N, 0, x)
-    y = -cst.a0 * cstShapeF(N, 0, x)
+function dy_lower(cst::CST{T,N}, x::T)::T where {T <: AbstractFloat,N}
+    dy = -cst.a0 * shape_d(cst, 0, x)
+    y = -cst.a0 * shape_f(cst, 0, x)
     for i = 1:N
-        dy += cst.al[i] * cstShapeD(N, i, x)
-        y += cst.al[i] * cstShapeF(N, i, x)
+        dy += cst.al[i] * shape_d(cst, i, x)
+        y += cst.al[i] * shape_f(cst, i, x)
     end
-    y * cstClassD(N1, N2, x) + dy * cstClassF(N1, N2, x) + cst.yl
+    y * class_d(cst, x) + dy * class_f(cst, x) + cst.yl
 end
 
 
-function fy_upper(cst::CST{T,N,N1,N2}, x::T)::Tuple{T,T} where {T <: AbstractFloat,N,N1,N2}
-    dy = cst.a0 * cstShapeD(N, 0, x)
-    y = cst.a0 * cstShapeF(N, 0, x)
+function fy_upper(cst::CST{T,N}, x::T)::Tuple{T,T} where {T <: AbstractFloat,N}
+    dy = cst.a0 * shape_d(cst, 0, x)
+    y = cst.a0 * shape_f(cst, 0, x)
     for i = 1:N
-        dy += cst.au[i] * cstShapeD(N, i, x)
-        y += cst.au[i] * cstShapeF(N, i, x)
+        dy += cst.au[i] * shape_d(cst, i, x)
+        y += cst.au[i] * shape_f(cst, i, x)
     end
-    C = cstClassF(N1, N2, x)
-    dC = cstClassD(N1, N2, x)
+    C = class_f(cst, x)
+    dC = class_d(cst, x)
     y * C + cst.yu * x, y * dC + dy * C + cst.yu
 end
 
-function fy_lower(cst::CST{T,N,N1,N2}, x::T)::Tuple{T,T} where {T <: AbstractFloat,N,N1,N2}
-    dy = -cst.a0 * cstShapeD(N, 0, x)
-    y = -cst.a0 * cstShapeF(N, 0, x)
+function fy_lower(cst::CST{T,N}, x::T)::Tuple{T,T} where {T <: AbstractFloat,N}
+    dy = -cst.a0 * shape_d(cst, 0, x)
+    y = -cst.a0 * shape_f(cst, 0, x)
     for i = 1:N
-        dy += cst.al[i] * cstShapeD(N, i, x)
-        y += cst.al[i] * cstShapeF(N, i, x)
+        dy += cst.al[i] * shape_d(cst, i, x)
+        y += cst.al[i] * shape_f(cst, i, x)
     end
-    C = cstClassF(N1, N2, x)
-    dC = cstClassD(N1, N2, x)
+    C = class_f(cst, x)
+    dC = class_d(cst, x)
     y * C + cst.yl * x, y * dC + dy * C + cst.yl
 end
