@@ -41,7 +41,7 @@ function dy_c(a::NACA4{T}, x::T)::T where {T <: AbstractFloat}
     if x < a.p 
         2 * a.m / a.p^2 * (a.p - x)
     else
-        2 * a.m / (1 - a.p)^2 * (a.p * x - x)
+        2 * a.m / (1 - a.p)^2 * (a.p - x)
     end
 end
 

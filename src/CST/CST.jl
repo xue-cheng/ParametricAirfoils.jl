@@ -55,7 +55,7 @@ end
 
 
 @inline shape_f(cst::CST, i, x) = shape_f(cst.shape, i, x)
-@inline shape_d(cst::CST, i, x) = shape_f(cst.shape, i, x)
+@inline shape_d(cst::CST, i, x) = shape_d(cst.shape, i, x)
 @inline class_f(cst::CST, x) = class_f(cst.class, x)
 @inline class_d(cst::CST, x) = class_d(cst.class, x)
 

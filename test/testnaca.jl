@@ -30,24 +30,16 @@ yuaf = y_upper(naca0015, xu)
 ylaf = y_lower(naca0015, xl)
 @test all(isapprox.(yu, yuaf, atol=1e-4))
 @test all(isapprox.(yl, ylaf, atol=1e-4))
-end
+naca4312s = NACA"4312"s
+xu, yu, xl, yl = read_airfoil_data("NACA4312S.dat")
+xtest = collect(0:0.1:1)
+xuaf = x_upper(naca4312s, xtest)
+yuaf = y_upper(naca4312s, xtest)
+xlaf = x_lower(naca4312s, xtest)
+ylaf = y_lower(naca4312s, xtest)
+@test all(isapprox.(xu, xuaf, atol=1e-4))
+@test all(isapprox.(yu, yuaf, atol=1e-4))
+@test all(isapprox.(xl, xlaf, atol=1e-4))
+@test all(isapprox.(yl, ylaf, atol=1e-4))
 
-@testset "CST" begin
-naca = NACA"0015"
-NP = 65
-x0, y0 = gen_airfoil(naca, NP)
-# original airfoil
-cst = fit(:CST, x0, y0, N=6)
-xtest = x0[NP:end]
-yuaf = y_upper(cst, xtest)
-ylaf = y_lower(cst, xtest)
-@test all(isapprox.(y0[NP:-1:1], yuaf, atol=2e-4))
-@test all(isapprox.(y0[NP:end], ylaf, atol=2e-4))
-# fit cambered airfoil
-naca = NACA"4412"s
-x0, y0 = gen_airfoil(naca, NP)
-fit!(cst, x0, y0)
-xx, yy = gen_airfoil(cst, NP)
-@test xx[end] == xx[1] == 1
-@test issorted(xx[NP:-1:1]) && issorted(xx[NP:end])
 end
