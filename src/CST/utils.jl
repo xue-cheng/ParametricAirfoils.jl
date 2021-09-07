@@ -32,7 +32,10 @@ class_d(::CSTClassFunction{N1,N2,T},x::T) where {N1,N2,T} = N1 * x^(N1 - 1) * (1
 
 function cst_preprocess(xx::AbstractVector{T}, yy::AbstractVector{T}) where T
     xte = (xx[1] + xx[end]) / 2
-    
+    if yy[end-1] > yy[2]
+        reverse!(xx)
+        reverse!(yy)
+    end
     imin = argmin(xx)
     x0 = xx[imin]
     y0 = yy[imin]
@@ -45,7 +48,7 @@ function cst_preprocess(xx::AbstractVector{T}, yy::AbstractVector{T}) where T
     yu = (yu_ .- y0) ./ cc
     xl = (xl_ .- x0) ./ cc
     yl = (yl_ .- y0) ./ cc
-    xu, yu, xl, yl
+    return xu, yu, xl, yl
 end
 
 function cst_matrix(

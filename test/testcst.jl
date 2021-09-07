@@ -2,12 +2,13 @@
 @testset "CST" begin
   naca = NACA"0015"
   NP = 65
-  x0, y0 = gen_airfoil(naca, NP)
+  x0, y0 = gen_airfoil(naca, NP, orient=:CCW)
   # original airfoil
   cst = fit(:CST, x0, y0, N=6)
   xtest = x0[NP:end]
   yuaf = y_upper(cst, xtest)
   ylaf = y_lower(cst, xtest)
+  @test cst.a0 > 0
   @test all(isapprox.(y0[NP:-1:1], yuaf, atol=2e-4))
   @test all(isapprox.(y0[NP:end], ylaf, atol=2e-4))
   
@@ -17,7 +18,8 @@
   dynaca = dy_lower(cst, xtest)
   dycst = dy_lower(cst, xtest)
   @test all(isapprox.(dynaca, dycst, rtol=.01, atol=.01))
-  
+  cstr = fit(:CST, reverse(x0), reverse(y0), N=6)
+  @test get_param(cst) ≈ get_param(cstr)
   # fit cambered airfoil
   cst = CST(undef, Float64, 5)
   a = get_param(cst)
