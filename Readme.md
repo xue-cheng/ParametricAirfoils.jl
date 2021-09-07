@@ -17,6 +17,7 @@ x1, y1 = gen_airfoil(naca0012, 129)
 
 cst = fit(:CST, x1, y1; N=9)
 x2, y2 = gen_airfoil(cst, 129) 
+x2r, y2r = gen_airfoil(cst, 129, orient=:CCW) # `orient` can be :CW or :CCW, default value is :CW
 yu = y_upper(cst, 0.2)
 dyu = dy_upper(cst, 0.2)
 yu, dyu = fy_upper(cst, 0.2) # eval y & dy in one call
