@@ -41,5 +41,9 @@ ylaf = y_lower(naca4312s, xtest)
 @test all(isapprox.(yu, yuaf, atol=1e-4))
 @test all(isapprox.(xl, xlaf, atol=1e-4))
 @test all(isapprox.(yl, ylaf, atol=1e-4))
-
+x1, y1 = gen_airfoil(naca4312s, 65, orient=:CCW)
+@test y1[end-1] < y1[2]
+x2, y2 = gen_airfoil(naca4312s, 65, orient=:CW)
+@test x1 ≈ reverse(x2) && y1 ≈ reverse(y2)
+@test_throws ArgumentError gen_airfoil(naca4312s, 65, orient=:OTHER)
 end

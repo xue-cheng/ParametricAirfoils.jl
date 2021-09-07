@@ -18,7 +18,7 @@ function cosspace(start::T, stop::T, np::I) where {T <: AbstractFloat,I <: Integ
     return p
 end
 
-function gen_airfoil(a::AbstractAirfoil{T}, np::Int=65; cos_space::Bool=true) where {T <: AbstractFloat}
+function gen_airfoil(a::AbstractAirfoil{T}, np::Int=65; cos_space::Bool=true, orient::Symbol=:CW) where {T <: AbstractFloat}
     if cos_space
         xc = cosspace(zero(T), one(T), np)
     else
@@ -34,7 +34,13 @@ function gen_airfoil(a::AbstractAirfoil{T}, np::Int=65; cos_space::Bool=true) wh
         xl[i] = x_lower(a, xc[i])
         yl[i] = y_lower(a, xc[i])
     end
-    return vcat(xu[end:-1:2],xl), vcat(yu[end:-1:2],yl)
+    return if orient == :CW
+        vcat(xl[end:-1:2],xu), vcat(yl[end:-1:2],yu)
+    elseif orient == :CCW
+        vcat(xu[end:-1:2],xl), vcat(yu[end:-1:2],yl)
+    else
+        throw(ArgumentError("invalid orient=$orient, must be :CW or :CCW"))
+    end
 end
 
 function n_upper(a::AbstractAirfoil{T}, xc::T)::Tuple{T,T} where {T <: AbstractFloat}
