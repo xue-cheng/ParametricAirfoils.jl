@@ -1,36 +1,32 @@
 
-@testset "CST" begin
-  naca = NACA"0015"
-  NP = 65
-  x0, y0 = gen_airfoil(naca, NP, orient=:CCW)
-  # original airfoil
-  cst = fit(:CST, x0, y0, N=6)
-  xtest = x0[NP:end]
-  yuaf = y_upper(cst, xtest)
-  ylaf = y_lower(cst, xtest)
-  @test cst.a0 > 0
-  @test all(isapprox.(y0[NP:-1:1], yuaf, atol=2e-4))
-  @test all(isapprox.(y0[NP:end], ylaf, atol=2e-4))
-  
-  dynaca = dy_upper(cst, xtest)
-  dycst = dy_upper(cst, xtest)
-  @test all(isapprox.(dynaca, dycst, rtol=.01, atol=.01))
-  dynaca = dy_lower(cst, xtest)
-  dycst = dy_lower(cst, xtest)
-  @test all(isapprox.(dynaca, dycst, rtol=.01, atol=.01))
-  cstr = fit(:CST, reverse(x0), reverse(y0), N=6)
-  @test get_param(cst) ≈ get_param(cstr)
-  # fit cambered airfoil
-  cst = CST(undef, Float64, 5)
-  a = get_param(cst)
-  set_param!(cst, a)
-  naca = NACA"4412" 
-  x0, y0 = gen_airfoil(naca, NP)
-  fit!(cst, x0, y0)
-  xx, yy = gen_airfoil(cst, NP)
-  @test xx[end] == xx[1] == 1
-  @test issorted(xx[NP:-1:1]) && issorted(xx[NP:end])
-  @test y_upper(cst, 1.0) > y_lower(cst, 1.0)
-  modify_te!(cst, T_TE=0) # modify to sharp TE
-  @test isapprox(y_upper(cst, 1.0), y_lower(cst, 1.0), atol=1e-6)
-  end
+@testset "CST($NCST+$NCST)" begin
+    cst = CST(NCST, Float64)
+    for airfoil in (NACA0012, RAE2822)
+        paf, err = fit(cst, airfoil.x, airfoil.y)
+        @info "$(airfoil.name) Fit error= $err" 
+        ile = argmin(airfoil.x)
+        x_up = airfoil.x[ile:-1:1]
+        y_up = airfoil.y[ile:-1:1]
+        x_lo = airfoil.x[ile:end]
+        y_lo = airfoil.y[ile:end]
+
+        yu = paf(:U, x_up)
+        eu = maximum(abs, yu-y_up)
+        yl = paf(:L, x_lo)
+        el = maximum(abs, yl.-y_lo)
+        @info "Maximum error= $eu(Upper) $el(Lower)"
+        @test eu < 2e-4 
+        @test el < 2e-4
+        if airfoil === NACA0012
+            y, dy = paf(:U, x_up, true)
+            @test isinf(dy[1])
+            @test yu == y
+            t = 0.12
+            x = x_up[2:end]
+            dyt = similar(x)
+            @. dyt = 5t*(.2969/2*x^-0.5-.126-.3516*2*x+.2843*3*x^2-.1015*4*x^3)
+            @test all(isapprox.(dy[2:end], dyt, atol=5e-2, rtol=5e-2))
+        end
+        gen_airfoil(paf)
+    end
+end

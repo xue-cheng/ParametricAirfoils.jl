@@ -1,29 +1,41 @@
 # ParametricAirfoils.jl #
 A Parametric Airfoils package for julia.
 
-[![Build Status](https://app.travis-ci.com/xue-cheng/ParametricAirfoils.jl.svg?branch=master)](https://app.travis-ci.com/xue-cheng/ParametricAirfoils.jl) 
-[![codecov](https://codecov.io/gh/xue-cheng/ParametricAirfoils.jl/branch/master/graph/badge.svg?token=8JqTeI0yto)](https://codecov.io/gh/xue-cheng/ParametricAirfoils.jl)
+![ci](https://github.com/xue-cheng/ParametricAirfoils.jl/actions/workflows/ci.yml/badge.svg)
+[![Coverage Status](https://coveralls.io/repos/github/xue-cheng/ParametricAirfoils.jl/badge.svg)](https://coveralls.io/github/xue-cheng/ParametricAirfoils.jl)
 
 ## Examples ##
 
 ```julia
-using ParametricAirfoils, Plots
-
-naca0012 = NACA"0012"s # `s` for sharp trailing edge
-# NACA0015 = NACA"0015"
-
-x1, y1 = gen_airfoil(naca0012, 129) 
-@asser length(x1) == 2*129 - 1
-
-cst = fit(:CST, x1, y1; N=9)
-x2, y2 = gen_airfoil(cst, 129) 
-x2r, y2r = gen_airfoil(cst, 129, orient=:CCW) # `orient` can be :CW or :CCW, default value is :CW
-yu = y_upper(cst, 0.2)
-dyu = dy_upper(cst, 0.2)
-yu, dyu = fy_upper(cst, 0.2) # eval y & dy in one call
-nx, ny = n_upper(cst, 0.3) # surface normal 
-tx, ty = t_upper(cst, 0.3) # surface tangent
-p = plot()
-plot!(p, x1, y1, label="NACA 0012")
-plot!(p, x2, y2, label="CST N=9")
+using ParametricAirfoils, AirfoilDatabase
+########## STEP 1. Select a parameterization method ##########
+# 1.1. CST Method
+N = 9 # num of params for **EACH** curve
+cst = CST(N) # == CST(N, Float64; N1=0.5, N2=1)
+csts = CST(N; link_le=false) # Different `A0` for upper and lower surfaces, **NOT recommended**
+# 1.2. Mean Camber + Thickness (MCT)
+# 1.2.1 MCT(CST+CST)
+mctcc = MCT(CurveCST(N, 1, 1, Float64), CurveCST(N, 0.5, 1.0, Float64))
+# 1.2.2 MCT(CST+Poly)
+indicies = tuple((max(0.5, i-1) for i in 1:N)...) # poly nomial indicies
+mctcp = MCT(CurveCST(N, 1, 1, Float64), CurvePoly(indicies, Float64))
+# 1.2.3 More curve types can be derived from `CurveFunction`, see `src/curve/_init.jl`
+########## STEP 2. Create ParametricAirfoil ##########
+# 2.1. Fitting airfoil data
+# install AirfoilDatabase.jl
+# run in REPL: `] add AirfoilDatabase`
+result = query_airfoil("N0012")
+@assert length(result)==1
+NACA0012 = result[1]
+airfoil, fiterr = fit(cst, NACA0012.x, NACA0012.y)
+# `cst` can be replaced with any parameterization method
+# 2.2. Create from parameters
+param = get_param(airfoil) # any vector of length `num_param(cst)`
+airfoil2 = ParametricAirfoil(cst, param)
+########## STEP 3. Airfoil Coordinates ##########
+xm = LinRange(0, 1, 33)
+xu, yu = airfoil(:U, xm) # Upper side
+xl, yl = airfoil(:L, xm) # Lower side
+# or at once
+x, y = gen_airfoil(airfoil)
 ```

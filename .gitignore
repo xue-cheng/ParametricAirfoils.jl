@@ -6,5 +6,6 @@
 params.json
 results.json
 docs/build/
-.*/
 *.cov
+/.vscode
+/Manifest.toml
