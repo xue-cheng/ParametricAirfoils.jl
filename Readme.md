@@ -34,8 +34,10 @@ param = get_param(airfoil) # any vector of length `num_param(cst)`
 airfoil2 = ParametricAirfoil(cst, param)
 ########## STEP 3. Airfoil Coordinates ##########
 xm = LinRange(0, 1, 33)
-xu, yu = airfoil(:U, xm) # Upper side
-xl, yl = airfoil(:L, xm) # Lower side
-# or at once
+yu = airfoil(:U, xm) # Upper side
+yl = airfoil(:L, xm) # Lower side
+# OR with gradient information
+yu, dyu =  airfoil(:U, xm, true)
+# OR generate points at once for meshing 
 x, y = gen_airfoil(airfoil)
 ```
