@@ -11,8 +11,8 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [compat]
 julia = "1.6"
-Optim = "0.5"
-Dierckx = "1"
+Dierckx = "0.5"
+Optim = "1"
 
 [extras]
 AirfoilDatabase = "133052f7-5177-44e4-ab05-826656cf3c53"
