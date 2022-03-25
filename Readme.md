@@ -1,8 +1,8 @@
 # ParametricAirfoils.jl #
 A Parametric Airfoils package for julia.
 
-[![Build Status](https://app.travis-ci.com/xue-cheng/ParametricAirfoils.jl.svg?branch=master)](https://app.travis-ci.com/xue-cheng/ParametricAirfoils.jl) 
-[![codecov](https://codecov.io/gh/xue-cheng/ParametricAirfoils.jl/branch/master/graph/badge.svg?token=8JqTeI0yto)](https://codecov.io/gh/xue-cheng/ParametricAirfoils.jl)
+![ci](https://github.com/xue-cheng/ParametricAirfoils.jl/actions/workflows/ci.yml/badge.svg)
+[![Coverage Status](https://coveralls.io/repos/github/xue-cheng/ParametricAirfoils.jl/badge.svg)](https://coveralls.io/github/xue-cheng/ParametricAirfoils.jl)
 
 ## Examples ##
 
