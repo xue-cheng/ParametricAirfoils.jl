@@ -36,13 +36,24 @@ airfoil_grad(c::CST, side::Symbol, param, x) = curve_grad(c.curve, _filt_param(c
 
 airfoil_full(c::CST, side::Symbol, param, x) = curve_full(c.curve, _filt_param(c, side, param), x)
 
-function airfoil_fit(cst::CST{N,T},x::AbstractVector, y::AbstractVector) where {N,T}
+function airfoil_fit(cst::CST{N,T,C},x::AbstractVector, y::AbstractVector) where {N,T,C}
     xu,yu,xl,yl = _split_points(eltype(cst), x, y)
     if linked_le(cst)
-        p, e = curve_fit(cst.curve, xu,yu,xl,yl)
+        Au = matrix_LSQ(cst.curve, xu)
+        Al = matrix_LSQ(cst.curve, xl)
+        A = [Au zeros(T, size(Au, 1), N-C);
+             zeros(T, size(Al, 1), C-1) -Al[:, C] Al[:, 1:(C-1)]]
+        b = vcat(yu, yl)
+        @assert N == 2C-1
+        p = A\b
+        e = sqrt(maximum(abs2, A*p - b))
     else
-        pu, eu = curve_fit(cst.curve, xu, yu)
-        pl, el = curve_fit(cst.curve, xl, yl)
+        Au = matrix_LSQ(cst.curve, xu)
+        Al = matrix_LSQ(cst.curve, xl)
+        pu = Au\yu
+        pl = Al\yl
+        eu = sqrt(maximum(abs2, Au*pu - yu))
+        el = sqrt(maximum(abs2, Al*pl - yu))
         p = vcat(pu, pl)
         e = max(eu, el)
     end

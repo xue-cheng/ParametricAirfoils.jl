@@ -33,9 +33,9 @@ end
 
 function side_sign(side::Symbol, ::Type{T}) where {T}
     if side == :U
-        one(T)/2
+        one(T)
     elseif side == :L
-        -one(T)/2
+        -one(T)
     else
         error("Invalid `side=:$side`, must be `:U` or `:L`")
     end
@@ -72,29 +72,16 @@ function airfoil_full(m::MCT, side::Symbol, param, x)
 end
 
 
-function airfoil_fit(m::MCT,x::AbstractVector, y::AbstractVector) where {N,T}
+function airfoil_fit(m::MCT{N, T}, x::AbstractVector, y::AbstractVector) where {N,T}
     xu,yu,xl,yl = _split_points(eltype(m), x, y)
-    # spline for the first estimation
-    spu = Spline1D(xu, yu, bc="extrapolate")
-    spl = Spline1D(xl, yl, bc="extrapolate")
-    nx = 32
-    dx = 1/nx
-    x0 = 1/(2nx)
-    xs = collect(range(x0, length=nx, step=dx))
-    ysu = spu(xs)
-    ysl = spl(xs)
-    ysc = (ysu+ysl)./2
-    yst = ysu-ysl
-    @assert all(yst .> 0)
-    pc, _ = curve_fit(m.camber, xs, ysc)
-    pt, _ = curve_fit(m.thickness, xs, yst)
-    p_init = vcat(pc, pt)
-    # use optimizer for finer tune
-    f(p) = sum(abs2, airfoil_coord(m, :U, p, xu).-yu) + sum(abs2, airfoil_coord(m, :L, p, xl).-yl)
-    result = optimize(f, p_init, LBFGS())
-    param = Optim.minimizer(result)
-    eu = maximum(abs, airfoil_coord(m, :U, param, xu).-yu)
-    el = maximum(abs, airfoil_coord(m, :L, param, xl).-yl)
-    e = max(eu, el)
-    return param, e
+    Acu = matrix_LSQ(m.camber, xu)
+    Atu = side_sign(:U, T) * matrix_LSQ(m.thickness, xu)
+    Acl = matrix_LSQ(m.camber, xl)
+    Atl = side_sign(:L, T) * matrix_LSQ(m.thickness, xl)
+    A = [Acu Atu; Acl Atl]
+    b = vcat(yu, yl)
+    p = A \ b
+    yy = vcat(airfoil_coord(m, :U, p, xu), airfoil_coord(m, :L, p, xl))
+    e = sqrt(maximum(abs2, yy - b))
+    return p, e
 end

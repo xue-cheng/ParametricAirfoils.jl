@@ -80,19 +80,13 @@ function curve_full(poly::CurvePoly{N,T}, param::P, x::X) where {N, T, X<:Abstra
     return y, dy 
 end
 
-function curve_fit(poly::CurvePoly{N, T}, x::AbstractVector, y::AbstractVector) where {N, T}
-    issorted(x) || error("`x` must be sorted")
-    length(x) == length(y) || error("`x` and `y` must have the same length")
-    xs = convert(Vector{T}, x)
-    ys = convert(Vector{T}, y)
-    A = Matrix{T}(undef, length(xs), N)
-    @inbounds for i in 1:N
-        e = poly.indices[i]
-        for p in eachindex(xs)
-            A[p, i] = xs[i]^e
+function matrix_LSQ(poly::CurvePoly{N, T}, x::AbstractVector{T}) where {N,T}
+    A = Matrix{T}(undef, length(x), N)
+    @inbounds for j in 1:N
+        e = poly.indices[j]
+        for i in eachindex(x)
+            A[i, j] = x[i]^e
         end
     end
-    p = A\ys
-    e = sqrt(maximum(abs2, A*p - ys))
-    return p, e
+    return A
 end

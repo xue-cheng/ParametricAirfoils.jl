@@ -1,18 +1,14 @@
 name = "ParametricAirfoils"
 uuid = "4c14af30-da9f-11e9-34cd-f9f0aee9fd2c"
 authors = ["Cheng Xue <xuecheng@nuaa.edu.cn>"]
-version = "2.0.1"
+version = "2.1.0"
 
 [deps]
-Dierckx = "39dd38d3-220a-591b-8e3c-4c3a8c710a94"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [compat]
 julia = "1.6"
-Dierckx = "0.5"
-Optim = "1"
 
 [extras]
 AirfoilDatabase = "133052f7-5177-44e4-ab05-826656cf3c53"

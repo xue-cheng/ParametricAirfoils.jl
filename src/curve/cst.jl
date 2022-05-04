@@ -138,19 +138,8 @@ function curve_full(cst::CurveCST{N,T,M}, param::P, x::X) where {N, T, M, X<:Abs
     return y, dy
 end
 
-function _cst_matrix(
-    cst::CurveCST{N,T,M},
-    x_surf::AbstractVector,
-    y_surf::AbstractVector) where {N,T,M}
-    issorted(x_surf) || error("`x_surf` must be sorted")
-    length(x_surf) == length(y_surf) || error("`x_surf` and `y_surf` must have the same length")
-    if (isapprox(x_surf[1], 0, atol=1e-6) && isapprox(y_surf[1], 0, atol=1e-6))
-        xs = convert(Vector{T}, @view(x_surf[2:end]))
-        ys = convert(Vector{T}, @view(y_surf[2:end]))
-    else
-        xs = convert(Vector{T}, x_surf)
-        ys = convert(Vector{T}, y_surf)
-    end
+function matrix_LSQ(cst::CurveCST{N,T,M}, x::AbstractVector{T}) where {N,T,M}
+    xs = convert(Vector{T}, x)
     A = Matrix{T}(undef, length(xs), N)
     @inbounds for ip in eachindex(xs)
         x = xs[ip]
@@ -161,61 +150,5 @@ function _cst_matrix(
         A[ip, M + 1] = x # y_te
         A[ip, M + 2] = c * _cst_shape_f(cst, 0, x) # a0
     end
-    return A, ys
+    return A
 end
-
-function _cst_matrix(
-    cst::CurveCST{N,T,M},
-    x_upper::AbstractVector,
-    y_upper::AbstractVector,
-    x_lower::AbstractVector,
-    y_lower::AbstractVector) where {N,T,M}
-    Au, bu = _cst_matrix(cst, x_upper, y_upper)
-    Al, bl = _cst_matrix(cst, x_lower, y_lower)
-    nu = length(bu)
-    nl = length(bl)
-    A = zeros(T, nu+nl, 2N-1)
-    b = vcat(bu, bl)
-    # fill upper surface
-    iup = 1:nu
-    copyto!(
-        A, 
-        CartesianIndices((iup, 1:N)),
-        Au,
-        CartesianIndices((1:nu, 1:N))
-    )
-    # fill lower surface
-    ilo = (nu+1):(nu+nl)
-    copyto!(
-        A, 
-        CartesianIndices((ilo, (N+1):(2N-1))),
-        Al,
-        CartesianIndices((1:nl, 1:(N-1)))
-    )
-    # leading edge # -a0
-    @. A[ilo, N] = -Al[:, N]
-    return A, b
-end
-
-function curve_fit(
-    cst::CurveCST{N,T,M},
-    xu::AbstractVector,
-    yu::AbstractVector,
-    xl::AbstractVector,
-    yl::AbstractVector ) where {N,T,M}
-    A, b = _cst_matrix(cst, xu, yu, xl, yl)
-    p = A\b
-    e = sqrt(maximum(abs2, A*p - b))
-    return p, e
-end
-
-function curve_fit(
-    cst::CurveCST{N,T},
-    xx::AbstractVector{T},
-    yy::AbstractVector{T} ) where {T,N}
-    A, b = _cst_matrix(cst, xx, yy)
-    p = A\b
-    e = sqrt(maximum(abs2, A*p - b))
-    return p, e
-end
-

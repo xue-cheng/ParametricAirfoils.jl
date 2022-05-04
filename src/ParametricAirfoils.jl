@@ -2,8 +2,6 @@ module ParametricAirfoils
 
 using LinearAlgebra
 using Printf
-using Dierckx
-using Optim
 
 include("curve/_init.jl")
 include("methods/_init.jl")
